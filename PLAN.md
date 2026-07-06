@@ -97,6 +97,14 @@ Host is on **PVE 8.4.11** (Debian 12 base, 6.8 kernel). With the old guests gone
 - After the destroy: **raise the workstation to 16GB and the LLM LXC to 12GB** (quick power-cycles) and retire the `.180` DHCP reservation → final NUC state 28GB allocated / ~4GB headroom.
 - vzdump archives (old HAOS, old Frigate, Coding VM) kept until Lawrie is happy, then removed to reclaim space.
 
+## Phase 10 — Automated maintenance (ongoing, recurring)
+
+Unlike Phases 0-9, this doesn't migrate anything — it sets up a **weekly cron job** on the workstation that keeps the fleet patched without turning the clean rebuild back into an unmanaged pile of drift:
+
+- **Fully automatic, no LLM in the loop**: OS-level security patches via `unattended-upgrades` on every Debian host/guest (NUC host, HP Mini host, workstation, LLM LXC, Frigate LXC).
+- **Weekly scheduled Claude Code run (headless, via a Linux cron job invoking the CLI — not Anthropic's cloud scheduler, since this needs LAN access to `192.168.68.x`)**: checks HA's Core/Supervisor/OS/add-on/HACS update entities via its REST API and Frigate's Docker image version. Auto-applies the low-risk subset (HACS integration updates, Frigate patch-version bumps) under a narrowly scoped permissions allowlist. Everything else — HA Core/Supervisor/OS updates, Proxmox point releases, Frigate major bumps — gets reported and pushed as a phone notification for Lawrie to approve manually.
+- **Never auto-applied, ever**: Zigbee coordinator and ESPHome device firmware (bricking risk), Proxmox major version upgrades, HA Core major versions — these always stay flag-only.
+
 ## Deferred
 
 - NAS build / Proxmox Backup Server on the HP Mini's free SATA bay — explicitly deferred by Lawrie in favor of LLM performance; vzdump-on-local-disk remains the interim safety net.

@@ -21,6 +21,7 @@ These files implement `PLAN.md` one phase at a time, across **three physical mac
 | 7 | `phase-7-ha-frigate-integration.md` | Coding VM | No |
 | 8 | `phase-8-nuc-workstation-llm.md` | Coding VM (drives the NUC over SSH) | No |
 | 9 | `phase-9-verify-decommission.md` | **workstation VM (.103, on the NUC)** | Brief RDP drop when workstation/LLM RAM is raised; each host's reboot test drops the session once. |
+| 10 | `phase-10-automated-maintenance.md` | workstation VM | No — this phase is a one-time setup of a **recurring weekly cron job**, not itself a migration step |
 
 ## The three machines
 
@@ -50,6 +51,10 @@ These files implement `PLAN.md` one phase at a time, across **three physical mac
 | NUC RAM rule | Guest allocation must never exceed **~22GB** while the Coding VM still exists (6 + 8 workstation + 8 LLM). Final state after Coding VM is destroyed: 16 + 12 = 28GB, ~4GB headroom. |
 | DHCP reservations | Made by Lawrie in the router app. Claude provides the MAC address and waits for confirmation. |
 | Zigbee coordinator | SLZB-type, network-attached at `tcp://192.168.68.98:6638` — no USB/serial passthrough needed anywhere. |
+
+## Ongoing maintenance (Phase 10)
+
+Phases 0-9 are one-time build/migration steps. Phase 10 is different: it sets up a **recurring weekly cron job** on the workstation VM that keeps the fleet patched going forward — OS security patches fully automatic everywhere (`unattended-upgrades`), routine HACS/Frigate-patch bumps auto-applied by a scoped, unattended Claude Code run, and anything riskier (HA Core/Supervisor/OS updates, Proxmox point releases, Frigate major versions, **Zigbee/ESPHome device firmware — never auto-applied**) just reported and pushed as a phone notification for Lawrie to approve manually. See that file for the full design reasoning.
 
 ## Handoff protocol
 
