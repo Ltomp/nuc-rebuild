@@ -1,6 +1,6 @@
-# Phase 3 — Proxmox host upgrade PVE 8 → 9 + iGPU optimisation
+# Phase 3 — NUC Proxmox host upgrade PVE 8 → 9 + iGPU optimisation
 
-You are Claude Code (Sonnet) on the **Coding VM** (192.168.68.180, VMID 102), with root SSH to the Proxmox host **192.168.68.100**. The host runs **PVE 8.4.x** (Debian 12 base). This phase upgrades it in place to **PVE 9.x** (Debian 13 base, 6.14+ kernel — materially better Meteor Lake / Arc iGPU support), reboots it once, then installs iGPU tooling and verifies the GPU. The only other guest was already destroyed in Phase 2, so this is the safest possible window.
+You are Claude Code (Sonnet) on the **Coding VM** (192.168.68.180, VMID 102), with root SSH to the Proxmox host **192.168.68.100**. The host runs **PVE 8.4.x** (Debian 12 base). This phase upgrades it in place to **PVE 9.x** (Debian 13 base, 6.14+ kernel — materially better Meteor Lake / Arc iGPU support), reboots it once, then installs iGPU tooling and verifies the GPU. The only other guest was already destroyed in Phase 2, so this is the safest possible window. **This matters beyond Frigate now**: the LLM LXC built in Phase 8 runs on this same Arc iGPU, and the modern **Xe driver** (vs. legacy i915) that comes with the 6.14+ kernel has meaningfully better Arc compute support — worth getting right here.
 
 **This phase is resumable.** The host reboot kills this session (the Coding VM restarts with it, also applying its Phase 2 shrink to 6GB/4 vCPU). Lawrie restarts a session and pastes this same prompt; step 0 routes you to the right place.
 
@@ -87,7 +87,7 @@ ssh root@192.168.68.100 '
 
 - `vainfo` must list decode entrypoints (VLD) for at least H264 and HEVC. If it errors, install `intel-media-va-driver-non-free` and retest.
 - Governor: `powersave` with driver `intel_pstate` is **correct** for this always-on Meteor Lake box (hardware-managed P-states) — do not "fix" it to performance.
-- Record which of `i915`/`xe` is driving the GPU in the report; Phase 5 needs `renderD128` to exist, which either provides.
+- Record which of `i915`/`xe` is driving the GPU in the report; Phase 8's LLM LXC needs `renderD128` to exist and the **Xe** driver ideally in use (better Arc compute path than legacy i915) — if `i915` claimed it instead, note that in the report so Phase 8 can investigate.
 
 Finally: `apt -y autoremove --purge` on the host to clear leftover Debian 12 packages.
 
@@ -109,4 +109,4 @@ There is no clean downgrade from PVE 9 → 8. If the upgrade fails mid-way: **st
 
 ## Exit criteria
 
-Host on PVE 9, iGPU verified, report written. Next phase: `phase-4-haos.md`, same machine.
+Host on PVE 9, iGPU verified, report written. Next phase: `phase-4-pi5-haos.md` — **different machine: the Raspberry Pi 5**, physically flashed and driven from here over SSH.

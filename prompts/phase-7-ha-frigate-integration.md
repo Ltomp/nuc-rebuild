@@ -1,11 +1,11 @@
-# Phase 6 — HA ↔ Frigate integration
+# Phase 7 — HA ↔ Frigate integration
 
-You are Claude Code (Sonnet) on the **Coding VM** (192.168.68.180). Home Assistant runs at `http://192.168.68.101:8123` (Phase 4, restored from backup) and Frigate at `http://192.168.68.102:5000` (Phase 5, GPU-accelerated, publishing to HA's Mosquitto). This phase connects them: HACS → Frigate integration → camera dashboard → one worked notification automation. Most steps happen in the HA UI, so this phase is **you guiding Lawrie click-by-click and verifying results over MQTT/API**, not running many commands yourself.
+You are Claude Code (Sonnet) on the **Coding VM** (192.168.68.180). Home Assistant runs at `http://192.168.68.101:8123` on the **Raspberry Pi 5** (Phase 4, restored from backup) and Frigate at `http://192.168.68.102:5000` on the **HP Mini** (Phase 6, GPU-accelerated on the UHD 770, publishing to HA's Mosquitto). This phase connects them: HACS → Frigate integration → camera dashboard → one worked notification automation. Most steps happen in the HA UI, so this phase is **you guiding Lawrie click-by-click and verifying results over MQTT/API**, not running many commands yourself.
 
 ## Preconditions
 
-- Read `~/rebuild/reports/phase-4.md` and `phase-5.md`.
-- Verify Frigate is publishing: `mosquitto_sub -h 192.168.68.101 -u frigate -P '<pw from ~/rebuild/salvage/mqtt-frigate-credentials.txt>' -t 'frigate/available' -C 1 -W 10` prints `online`.
+- Read `~/rebuild/reports/phase-4.md` (Pi 5 / HA) and `phase-6.md` (HP Mini / Frigate).
+- Verify Frigate is publishing: `mosquitto_sub -h 192.168.68.101 -u frigate -P '<frigate MQTT password>' -t 'frigate/available' -C 1 -W 10` prints `online`. (MQTT broker is on the Pi 5 at `.101` — the old NUC-hosted broker no longer exists.)
 
 ## Steps
 
@@ -19,7 +19,7 @@ If absent, guide Lawrie through the official install (https://hacs.xyz/docs/use/
 
 1. HACS → search "Frigate" → Download; restart HA when prompted.
 2. Settings → Devices & services → Add integration → **Frigate**; URL: `http://192.168.68.102:5000`.
-3. Expected result: one device per camera plus per-camera entities — `camera.<name>`, occupancy sensors (`binary_sensor.<name>_person_occupancy` etc.), count sensors, and motion sensors. If camera names were kept from the old config (per the Phase 5 report), previously-restored dashboards/automations referencing them may just start working again — check.
+3. Expected result: one device per camera plus per-camera entities — `camera.<name>`, occupancy sensors (`binary_sensor.<name>_person_occupancy` etc.), count sensors, and motion sensors. If camera names were kept from the old config (per the Phase 6 report), previously-restored dashboards/automations referencing them may just start working again — check.
 
 Optionally also suggest the **Frigate Card** (HACS → Frontend → "Frigate card") — the best dashboard card for this setup.
 
@@ -67,14 +67,14 @@ If a link in the chain fails, debug that link only (integration config, sensor n
 
 ### 6. Handoff report
 
-Write `~/rebuild/reports/phase-6.md`: HACS status (restored vs fresh), integration entity naming, dashboard state, the automation's final YAML, and the live-test result.
+Write `~/rebuild/reports/phase-7.md`: HACS status (restored vs fresh), integration entity naming, dashboard state, the automation's final YAML, and the live-test result.
 
 ## Verification checklist
 
 - [ ] Frigate integration loaded; entities exist for all 4 cameras.
 - [ ] Dashboard shows all 4 live feeds.
 - [ ] Walk test: Frigate event → MQTT → HA sensor → phone notification with snapshot, end to end.
-- [ ] `~/rebuild/reports/phase-6.md` written.
+- [ ] `~/rebuild/reports/phase-7.md` written.
 
 ## Rollback
 
@@ -82,4 +82,4 @@ Everything here is additive inside HA (integration, dashboard, automation) — r
 
 ## Exit criteria
 
-The security stack is fully rebuilt and verified. Next phase: `phase-7-workstation.md`, same machine.
+The security stack is fully rebuilt and verified across two machines (Pi 5 + HP Mini). Next phase: `phase-8-nuc-workstation-llm.md`, back to the NUC.

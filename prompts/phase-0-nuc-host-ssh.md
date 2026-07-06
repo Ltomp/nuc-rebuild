@@ -1,6 +1,6 @@
-# Phase 0 — Host SSH access
+# Phase 0 — NUC host SSH access
 
-You are Claude Code (Sonnet) running on the **Coding VM** (Debian 13, IP 192.168.68.180, VMID 102) — a guest on a Proxmox VE host at **192.168.68.100** (ASUS NUC 14 Pro). This is Phase 0 of a 9-phase rebuild of that host's guests. Your only job in this phase: establish passwordless root SSH from this VM to the Proxmox host, so later phases can drive the host from here. Lawrie (the human) is available to answer questions and perform one manual step in the Proxmox web UI.
+You are Claude Code (Sonnet) running on the **Coding VM** (Debian 13, IP 192.168.68.180, VMID 102) — a guest on a Proxmox VE host at **192.168.68.100** (ASUS NUC 14 Pro). This is Phase 0 of a 10-phase rebuild spanning three machines: the NUC (Proxmox — workstation + LLM), a Raspberry Pi 5 (bare-metal HAOS), and an HP Pro Mini 400 G9 (Proxmox — Frigate). This phase only concerns the NUC. Your only job here: establish passwordless root SSH from this VM to the NUC's Proxmox host, so later phases can drive it from here. Lawrie (the human) is available to answer questions and perform one manual step in the Proxmox web UI.
 
 ## Objective
 
@@ -77,4 +77,4 @@ Nothing in this phase changes the host beyond one appended line in `/root/.ssh/a
 
 ## Exit criteria
 
-Passwordless root SSH to 192.168.68.100 verified; report written. Next phase: `phase-1-audit-salvage.md`, same machine.
+Passwordless root SSH to 192.168.68.100 verified; report written. Next phase: `phase-1-nuc-audit-salvage.md`, same machine.

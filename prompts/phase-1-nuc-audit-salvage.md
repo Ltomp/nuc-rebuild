@@ -1,4 +1,4 @@
-# Phase 1 — Audit + salvage (before touching anything)
+# Phase 1 — NUC audit + salvage (before touching anything)
 
 You are Claude Code (Sonnet) on the **Coding VM** (192.168.68.180, VMID 102), with passwordless root SSH to the Proxmox host **192.168.68.100** (established in Phase 0). This phase is **strictly read-and-copy**: audit the host, and salvage everything needed to rebuild Home Assistant and Frigate, before anything is deleted in Phase 2. **You must not stop, reconfigure, or delete any guest in this phase.**
 
@@ -45,9 +45,9 @@ ssh root@192.168.68.100 'for id in $(qm list | awk "NR>1{print \$1}"); do echo "
 
 Preferred route — HA CLI via the VM console is fiddly; use the API or ask Lawrie:
 
-1. Ask Lawrie to trigger **Settings → System → Backups → Create backup (full)** in the HA UI at `http://192.168.68.101:8123`, or do it yourself if a long-lived access token is available.
-2. Once complete, download it. Easiest: Lawrie downloads from the HA UI and you fetch it, or pull over Samba/SSH add-on if configured. If no path works, ask Lawrie how they'd like to hand you the file. The goal is non-negotiable: **a full-backup `.tar` copied to `~/rebuild/salvage/` AND to `/root/rebuild-salvage/` on the host.**
-3. Verify: file exists in both places, size > 10MB, and `tar -tf` on it lists contents without error.
+1. Ask Lawrie to trigger **Settings → System → Backups → Create backup (full)** in the HA UI at `http://192.168.68.101:8123`, or do it yourself if a long-lived access token is available. **It must be a Full backup, not a partial/config-only one** — this HA install runs Zigbee2MQTT, Matter Server, ESPHome, and the voice assist add-ons, and only a Full backup captures their add-on data (Zigbee2MQTT's paired-device database, Matter fabric certificates, ESPHome secrets) alongside the core config. A partial backup would silently lose all of that, forcing a re-pair of 51 Zigbee devices and re-commissioning of Matter devices in Phase 4.
+2. Once complete, download it. Easiest: Lawrie downloads from the HA UI and you fetch it, or pull over Samba/SSH add-on if configured. If no path works, ask Lawrie how they'd like to hand you the file. The goal is non-negotiable: **a full-backup `.tar` copied to `~/rebuild/salvage/` AND to `/root/rebuild-salvage/` on the host.** Expect this to be large (the recorder DB alone was ~420MB at last check, still growing) — budget transfer time and disk space accordingly, and don't be surprised by a multi-hundred-MB to multi-GB file.
+3. Verify: file exists in both places, size > 100MB (a suspiciously small file likely means a partial backup was taken by mistake — stop and redo it as Full), and `tar -tf` on it lists contents without error.
 
 ### 3. Salvage Frigate config
 
@@ -107,4 +107,4 @@ Nothing was modified — this phase only reads and copies. Worst case: delete th
 
 ## Exit criteria
 
-All salvage verified in two places, vzdumps done, report written. **Cameras and HA are still running.** Next phase: `phase-2-shrink-teardown.md`, same machine.
+All salvage verified in two places, vzdumps done, report written. **Cameras and HA are still running.** Next phase: `phase-2-nuc-shrink-teardown.md`, same machine.

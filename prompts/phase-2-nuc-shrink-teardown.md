@@ -1,11 +1,11 @@
-# Phase 2 — Shrink Coding VM (config only) + teardown of old guests
+# Phase 2 — NUC: shrink Coding VM (config only) + teardown of old guests
 
 You are Claude Code (Sonnet) on the **Coding VM** (192.168.68.180, VMID 102), with root SSH to the Proxmox host **192.168.68.100**. This phase does two things: (a) *configures* — but does not apply — the shrink of this VM, and (b) **destroys the old HAOS VM and old Frigate container** after Lawrie's explicit confirmation. This is the first destructive phase. Backups from Phase 1 are the safety net.
 
 ## Context
 
 - The Coding VM shrinks to **6GB RAM / 4 vCPU**. The change is applied by the **host reboot in Phase 3**, not here — do **not** reboot or stop VMID 102 in this phase (you are running inside it; one interruption total is the design).
-- After the old guests are destroyed, **the cameras and Home Assistant go dark until Phases 4–5.** Lawrie must acknowledge this.
+- After the old guests are destroyed, **the cameras and Home Assistant go dark until Phase 4 (Pi 5) and Phase 6 (HP Mini) rebuild them.** Lawrie must acknowledge this.
 - Real VMIDs come from the Phase 1 report — never guess them.
 
 ## Preconditions
@@ -86,4 +86,4 @@ Write `~/rebuild/reports/phase-2.md`: shrink configured (6144/4, pending reboot)
 
 ## Exit criteria
 
-Old guests destroyed, shrink staged, backups intact, report written. Next phase: `phase-3-host-upgrade.md`, same machine — **that phase includes the one planned session interruption.**
+Old guests destroyed, shrink staged, backups intact, report written. Next phase: `phase-3-nuc-host-upgrade.md`, same machine — **that phase includes the one planned session interruption.**
