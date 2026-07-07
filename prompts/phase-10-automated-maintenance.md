@@ -10,9 +10,29 @@ Updates split into two tiers by risk, and **only one tier runs unattended**:
 
 **Tier 1 — fully automatic, no LLM needed at all.** OS-level security patches (`unattended-upgrades`) on every Debian-based host/guest: NUC host, HP Mini host, workstation VM, LLM LXC, Frigate LXC. This is a well-established, boring, battle-tested mechanism — don't reinvent it with an agent loop.
 
-**Tier 2 — checked and safe-subset-applied weekly by a scheduled Claude Code run, everything else held for Lawrie's explicit approval.** This covers: HA Core/Supervisor/OS/add-on updates, HACS integration updates, Frigate's Docker image version, and Proxmox point-releases. Within Tier 2:
-- **Auto-apply**: HACS integration updates, Frigate patch-version bumps (e.g. `0.15.1` → `0.15.2`, not a major jump) — low blast radius, easy to roll back.
-- **Never auto-apply, always just report + notify**: HA Core/Supervisor/OS updates (breaking-change history on this exact install matters — 1,752 entities, 28 automations riding on it), Proxmox point/major releases (we just did the careful `pve8to9`-checklist upgrade by hand for a reason), Frigate major version bumps, and **Zigbee coordinator / ESPHome device firmware** (a botched auto-update here can brick hardware requiring a physical re-flash — this category is flag-only, forever, no exceptions).
+**Tier 2 — checked weekly by a scheduled Claude Code run; only HACS updates auto-apply, everything else held for Lawrie's explicit approval.** This covers: HA Core/Supervisor/OS/add-on updates, HACS integration updates, Frigate's version, the LLM serving stack's (IPEX-LLM/Ollama) version, and Proxmox point-releases.
+- **Auto-apply**: HACS integration updates only — genuinely low blast radius, easy to roll back via HACS itself.
+- **Never auto-apply, always just report + notify**: HA Core/Supervisor/OS updates (breaking-change history on this exact install matters — 1,752 entities, 28 automations riding on it), Proxmox point/major releases (we just did the careful `pve8to9`-checklist upgrade by hand for a reason), **Frigate updates of any size** (it has a real history of config-schema changes — retention config, `go2rtc` integration — shipping inside releases that look like routine version bumps; never assume a patch-looking version number means a safe patch), the LLM stack's version, and **Zigbee coordinator / ESPHome device firmware** (a botched auto-update here can brick hardware requiring a physical re-flash — this category is flag-only, forever, no exceptions).
+
+### Checking software that HA doesn't know about
+
+HA's `update.*` entities only cover HA Core/Supervisor/OS, add-ons, and HACS. **Frigate and the LLM stack are neither** — they're raw software running in an LXC, invisible to HA's update system entirely. The pattern for anything in this situation: compare the *currently running* version against the *latest published* version from the project's own release channel.
+
+For Frigate, both halves are cheap API calls:
+
+```bash
+# what's actually running right now
+curl -s http://192.168.68.102:5000/api/version
+
+# what's the latest published release
+curl -s https://api.github.com/repos/blakeblackshear/frigate/releases/latest | jq -r '.tag_name, .published_at, .body'
+```
+
+If they differ, **read the `.body` release-notes text** (that's what the GitHub API call above already fetches) and summarize it in the report — don't try to auto-classify by version number alone, since Frigate's version numbers don't reliably signal blast radius. This is real work worth having an LLM do (reading unstructured prose for "breaking"/"migration required" language), even though the action taken afterward is always "report, never auto-apply."
+
+For the LLM stack (IPEX-LLM/Ollama), the same pattern applies: check its own version output against its upstream GitHub releases page, same reasoning, same "report only" handling.
+
+If a future piece of software doesn't publish to GitHub Releases, the fallback is comparing the local Docker image's digest against the registry's current manifest digest for the same tag (`docker manifest inspect <image>:<tag>` or the `crane`/`skopeo` tools) — cruder (no changelog text, no semver), but still tells you *whether* something changed even when you can't easily tell *what*.
 
 **Why a cron job + headless Claude CLI, not Anthropic's cloud scheduler**: this needs to run *on your LAN*, with the SSH keys and HA token that already live on the workstation, reaching `192.168.68.x` addresses directly. A cloud-scheduled agent wouldn't have that network path. So this phase sets up a plain Linux cron job on the workstation that invokes `claude` in headless/print mode against a maintenance prompt — the same mechanism you'd use to script any CLI tool, just running the actual Claude Code binary unattended.
 
@@ -54,7 +74,7 @@ curl -s -H "Authorization: Bearer $(cat ~/.config/ha-maintenance-token)" http://
 
 ### 3. Scope a permissions allowlist for the unattended run
 
-Use the `update-config` skill to build a `.claude/settings.json` allowlist scoped to exactly what the weekly run needs and nothing more: read-only `apt list --upgradable` checks everywhere, the specific `curl` calls to HA's REST API (both reading `update.*` entity states and calling the `update.install` service), `docker compose pull`/`up -d` scoped to the Frigate LXC's compose directory only, and the HACS update path. Do **not** allowlist `qm`/`pct destroy`, `reboot`, or anything outside this narrow set — the whole point is that this job can't do anything irreversible on its own.
+Use the `update-config` skill to build a `.claude/settings.json` allowlist scoped to exactly what the weekly run needs and nothing more: read-only `apt list --upgradable` checks everywhere, read-only `curl` GETs to HA's REST API and to `api.github.com` (release checks), the `update.install` service call (HACS only), and read-only `curl` to Frigate's and the LLM stack's own version endpoints. Do **not** allowlist `docker compose pull`/`up`, `qm`/`pct destroy`, `reboot`, or anything else destructive — Frigate and the LLM stack are report-only in this design, so the job never needs write access to them at all.
 
 ### 4. Write the maintenance prompt
 
@@ -62,9 +82,11 @@ Create `prompts/maintenance-weekly.md` in this repo — this is the prompt the c
 
 1. Check `apt list --upgradable` on the NUC host, HP Mini host, workstation, LLM LXC, and Frigate LXC — Tier 1 already handles security patches automatically, so this is really just a sanity check that `unattended-upgrades` is actually running (check `/var/log/unattended-upgrades/` timestamps) rather than a thing to act on directly.
 2. Query HA's `update.*` entities via the REST API (`GET /api/states` filtered to the `update.` domain) for Core, Supervisor, OS, each add-on, and each HACS integration. For each one showing an update available, fetch the release notes URL (the entity's `release_url` attribute) and summarize whether it looks like a breaking/major change or a routine patch.
-3. For HACS integration updates and Frigate patch-version bumps identified as routine: apply them (`update.install` service call for HACS; `docker compose pull && docker compose up -d` for Frigate, only when the version diff is a patch/minor bump, not a major one).
-4. For everything else with an update available (HA Core/Supervisor/OS, Proxmox, Frigate major bumps, any Zigbee/ESPHome firmware notice surfaced via HA): take **no action** — just collect it into the report.
-5. Write `~/maintenance/reports/<date>.md` with what was auto-applied and what's waiting, and send a summary via HA's existing notify service:
+3. **Frigate** (not in HA's update system): `curl http://192.168.68.102:5000/api/version` for the running version, `curl https://api.github.com/repos/blakeblackshear/frigate/releases/latest` for the latest published one. If they differ, read the release's `.body` text and summarize what changed — never classify by version number alone.
+4. **LLM stack** (also not in HA's update system): same pattern — check the running IPEX-LLM/Ollama version against its upstream GitHub releases.
+5. For HACS integration updates identified as routine: apply them (`update.install` service call).
+6. For everything else with an update available (HA Core/Supervisor/OS, Proxmox, **Frigate of any version size**, the LLM stack, any Zigbee/ESPHome firmware notice surfaced via HA): take **no action** — just collect it into the report with the summarized release notes.
+7. Write `~/maintenance/reports/<date>.md` with what was auto-applied and what's waiting, and send a summary via HA's existing notify service:
 
 ```bash
 curl -s -X POST -H "Authorization: Bearer $(cat ~/.config/ha-maintenance-token)" \
