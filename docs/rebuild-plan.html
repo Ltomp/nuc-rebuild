@@ -241,11 +241,11 @@
 <script>
   const PHASES = [
     {
-      id: 0, title: "NUC host SSH access", meta: "Coding VM (.180)", badges: ["manual"],
+      id: 0, title: "NUC host SSH access", meta: "Coding VM", badges: ["manual"],
       tasks: [
         "Check/generate SSH keypair on the Coding VM (~/.ssh/)",
         "Lawrie authorizes the key via Proxmox web UI → NUC node → Shell (paste into authorized_keys)",
-        "Verify `ssh root@192.168.68.100` from the Coding VM",
+        "Verify root SSH access to the NUC host from the Coding VM",
       ],
     },
     {
@@ -282,7 +282,7 @@
       tasks: [
         "Lawrie physically upgrades the Pi 5 from microSD to NVMe",
         "Flash the official HAOS Raspberry Pi 5 image and boot it",
-        "Static DHCP reservation on .101 (reused)",
+        "Static DHCP reservation (reused from the old HAOS VM)",
         "Restore the Phase 1 full backup — Zigbee2MQTT, Matter, ESPHome, voice assist, Samba, automations, HACS",
         "Tailscale manual re-auth (node identity ties to the physical install)",
         "Add a recorder: block with exclude/purge_keep_days tuning (fixed 8GB ceiling, no borrowing headroom)",
@@ -292,17 +292,17 @@
     {
       id: 5, title: "HP Pro Mini 400 G9: Proxmox bootstrap", meta: "Coding VM drives it over SSH", badges: ["manual"],
       tasks: [
-        "Lawrie installs Proxmox VE fresh on the HP Mini (USB installer), static IP .110",
+        "Lawrie installs Proxmox VE fresh on the HP Mini (USB installer), assigns a static IP",
         "Same SSH-key-authorization pattern as Phase 0, establishing root SSH from the Coding VM",
       ],
     },
     {
       id: 6, title: "HP Mini: Frigate LXC on the UHD 770", meta: "Coding VM drives it over SSH", badges: [],
       tasks: [
-        "Debian 13 LXC (unprivileged) with /dev/dri/renderD128 passthrough + nesting for Docker, static .102 (reused)",
+        "Debian 13 LXC (unprivileged) with /dev/dri/renderD128 passthrough + nesting for Docker, static reservation (reused from the old Frigate container)",
         "Install Docker + Frigate (compose)",
         "Rebuild config.yml from salvaged camera credentials: go2rtc per camera, ffmpeg hwaccel_args preset-vaapi",
-        "Detector: openvino on GPU (UHD 770); MQTT → the Pi 5's Mosquitto at .101; keep salvaged zones/masks",
+        "Detector: openvino on GPU (UHD 770); MQTT → the Pi 5's Mosquitto; keep salvaged zones/masks",
         "Verify: intel_gpu_top shows video+render load, Frigate UI inference speed, low CPU",
       ],
     },
@@ -318,22 +318,22 @@
     {
       id: 8, title: "NUC: workstation VM + LLM LXC", meta: "Coding VM drives it over SSH", badges: [],
       tasks: [
-        "Workstation VM: Debian 13, 8GB / 6 vCPU / 150GB on .103",
+        "Workstation VM: Debian 13, 8GB / 6 vCPU / 150GB",
         "Install XFCE (minimal), xrdp, Google Chrome, Claude Desktop (Anthropic apt repo) + Claude Code CLI",
         "Migrate ~/claude/, ~/.claude/, ~/awa, npm globals, git config/credentials, MCP configs, SSH keys, ~/rebuild/",
-        "LLM LXC: unprivileged, dev0 passthrough to the Arc iGPU, 8GB / 4 vCPU / 100GB on .104",
+        "LLM LXC: unprivileged, dev0 passthrough to the Arc iGPU, 8GB / 4 vCPU / 100GB",
         "Serve via IPEX-LLM: small vision-capable model kept warm for llmvision captioning",
         "Serve a separate 7–14B model for general chat/coding experimentation",
       ],
     },
     {
-      id: 9, title: "Verification + decommission", meta: "workstation VM (.103)", badges: ["interrupt"],
+      id: 9, title: "Verification + decommission", meta: "workstation VM", badges: ["interrupt"],
       tasks: [
         "End-to-end walk test: Frigate (HP Mini) detects a person → MQTT to HA (Pi 5) → llmvision → LLM LXC (NUC) description → phone notification with snapshot",
         "Reboot-test all three machines; confirm every guest/service auto-starts",
         "Final check: nothing unmigrated on the Coding VM",
         "Lawrie confirms, then destroy the Coding VM (from the workstation or web UI, not from inside it)",
-        "Raise the workstation VM to 16GB and the LLM LXC to 12GB; retire the .180 DHCP reservation",
+        "Raise the workstation VM to 16GB and the LLM LXC to 12GB; retire the Coding VM's DHCP reservation",
         "Keep vzdump archives (old HAOS, old Frigate, Coding VM) until Lawrie is happy, then remove to reclaim space",
       ],
     },
