@@ -1,0 +1,426 @@
+<title>Home Lab Rebuild — Phase Checklist</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --ink: #12151a;
+    --surface: #1b212b;
+    --surface-raised: #232b38;
+    --line: #2d3542;
+    --text: #e9e6df;
+    --text-dim: #97a1b0;
+    --accent: #d9853f;
+    --accent-soft: rgba(217, 133, 63, 0.16);
+    --done: #7cb08a;
+    --done-soft: rgba(124, 176, 138, 0.16);
+    --manual: #6f9bd1;
+    --manual-soft: rgba(111, 155, 209, 0.16);
+    --interrupt: #cf6b52;
+    --interrupt-soft: rgba(207, 107, 82, 0.16);
+    --deferred: #8b90a0;
+    --deferred-soft: rgba(139, 144, 160, 0.12);
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
+    --font-body: -apple-system, "Segoe UI", "Helvetica Neue", Roboto, Arial, sans-serif;
+    color-scheme: dark;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --ink: #f3f1ec;
+      --surface: #ffffff;
+      --surface-raised: #f7f5f0;
+      --line: #ddd8cd;
+      --text: #23262b;
+      --text-dim: #636975;
+      --accent: #b8672a;
+      --accent-soft: rgba(184, 103, 42, 0.10);
+      --done: #3f8a54;
+      --done-soft: rgba(63, 138, 84, 0.10);
+      --manual: #2f5f95;
+      --manual-soft: rgba(47, 95, 149, 0.10);
+      --interrupt: #a84a37;
+      --interrupt-soft: rgba(168, 74, 55, 0.10);
+      --deferred: #6b7078;
+      --deferred-soft: rgba(107, 112, 120, 0.08);
+      color-scheme: light;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ink: #12151a; --surface: #1b212b; --surface-raised: #232b38; --line: #2d3542;
+    --text: #e9e6df; --text-dim: #97a1b0; --accent: #d9853f; --accent-soft: rgba(217, 133, 63, 0.16);
+    --done: #7cb08a; --done-soft: rgba(124, 176, 138, 0.16); --manual: #6f9bd1; --manual-soft: rgba(111, 155, 209, 0.16);
+    --interrupt: #cf6b52; --interrupt-soft: rgba(207, 107, 82, 0.16); --deferred: #8b90a0; --deferred-soft: rgba(139, 144, 160, 0.12);
+    color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    --ink: #f3f1ec; --surface: #ffffff; --surface-raised: #f7f5f0; --line: #ddd8cd;
+    --text: #23262b; --text-dim: #636975; --accent: #b8672a; --accent-soft: rgba(184, 103, 42, 0.10);
+    --done: #3f8a54; --done-soft: rgba(63, 138, 84, 0.10); --manual: #2f5f95; --manual-soft: rgba(47, 95, 149, 0.10);
+    --interrupt: #a84a37; --interrupt-soft: rgba(168, 74, 55, 0.10); --deferred: #6b7078; --deferred-soft: rgba(107, 112, 120, 0.08);
+    color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ink); color: var(--text);
+    font-family: var(--font-body); line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 860px; margin: 0 auto; padding: 0 20px 96px; }
+
+  header.top {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--ink) 92%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+    padding: 20px 20px 16px;
+  }
+  header.top .inner { max-width: 860px; margin: 0 auto; }
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-dim); margin: 0 0 6px;
+  }
+  h1 { font-size: 22px; margin: 0 0 14px; font-weight: 650; text-wrap: balance; }
+
+  .progress-row { display: flex; align-items: center; gap: 12px; }
+  .progress-track {
+    flex: 1; height: 8px; border-radius: 5px; background: var(--surface-raised);
+    border: 1px solid var(--line); overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: var(--accent); border-radius: 5px 0 0 5px;
+    transition: width 0.25s ease;
+  }
+  .progress-label {
+    font-family: var(--font-mono); font-size: 12.5px; color: var(--text-dim);
+    white-space: nowrap; font-variant-numeric: tabular-nums;
+  }
+
+  h2.intro-title { font-size: 15px; margin: 28px 0 8px; color: var(--text-dim); font-weight: 600; }
+  p.intro { font-size: 14.5px; color: var(--text-dim); margin: 0 0 28px; max-width: 65ch; }
+  p.intro code { font-family: var(--font-mono); background: var(--surface-raised); padding: 1px 5px; border-radius: 4px; font-size: 0.92em; }
+
+  details.phase {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    margin-bottom: 10px; overflow: hidden;
+  }
+  details.phase[open] { border-color: color-mix(in srgb, var(--accent) 35%, var(--line)); }
+  details.phase summary {
+    list-style: none; cursor: pointer; padding: 14px 16px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  details.phase summary::-webkit-details-marker { display: none; }
+  details.phase summary:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+  .chev {
+    width: 14px; height: 14px; flex: none; color: var(--text-dim);
+    transition: transform 0.18s ease;
+  }
+  details.phase[open] .chev { transform: rotate(90deg); }
+
+  .phase-num {
+    font-family: var(--font-mono); font-size: 12.5px; font-weight: 600;
+    color: var(--accent); flex: none; width: 28px;
+  }
+  .phase-head { flex: 1; min-width: 0; }
+  .phase-title { font-size: 14.5px; font-weight: 600; text-wrap: balance; }
+  .phase-meta {
+    font-family: var(--font-mono); font-size: 11.5px; color: var(--text-dim);
+    margin-top: 3px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center;
+  }
+
+  .badge {
+    display: inline-block; font-family: var(--font-mono); font-size: 10.5px;
+    letter-spacing: 0.03em; text-transform: uppercase; padding: 2px 7px;
+    border-radius: 4px; font-weight: 600; white-space: nowrap;
+  }
+  .badge.manual { background: var(--manual-soft); color: var(--manual); }
+  .badge.interrupt { background: var(--interrupt-soft); color: var(--interrupt); }
+  .badge.recurring { background: var(--deferred-soft); color: var(--deferred); }
+
+  .mini-progress {
+    flex: none; width: 74px; height: 6px; border-radius: 4px;
+    background: var(--surface-raised); border: 1px solid var(--line); overflow: hidden;
+  }
+  .mini-progress-fill { height: 100%; background: var(--done); }
+  .mini-count {
+    flex: none; font-family: var(--font-mono); font-size: 11.5px; color: var(--text-dim);
+    width: 34px; text-align: right; font-variant-numeric: tabular-nums;
+  }
+
+  .phase-body { padding: 0 16px 16px 58px; }
+  ul.tasks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  ul.tasks li {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 7px 8px; border-radius: 6px;
+  }
+  ul.tasks li:hover { background: var(--surface-raised); }
+
+  input[type="checkbox"] {
+    appearance: none; -webkit-appearance: none; flex: none;
+    width: 17px; height: 17px; margin-top: 1px; border-radius: 5px;
+    border: 1.5px solid var(--line); background: var(--surface-raised);
+    cursor: pointer; position: relative; transition: background 0.12s, border-color 0.12s;
+  }
+  input[type="checkbox"]:checked { background: var(--done); border-color: var(--done); }
+  input[type="checkbox"]:checked::after {
+    content: ""; position: absolute; left: 5px; top: 1.5px;
+    width: 4px; height: 8px; border: solid var(--ink);
+    border-width: 0 2px 2px 0; transform: rotate(40deg);
+  }
+  input[type="checkbox"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  label.task-text { font-size: 13.5px; line-height: 1.45; cursor: pointer; }
+  li.done label.task-text { color: var(--text-dim); text-decoration: line-through; text-decoration-color: var(--line); }
+
+  .deferred-panel {
+    margin-top: 32px; border: 1px dashed var(--line); border-radius: 10px;
+    padding: 16px 18px; background: var(--surface);
+  }
+  .deferred-panel h3 {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--deferred); margin: 0 0 10px; font-weight: 700;
+  }
+  .deferred-panel ul { margin: 0; padding-left: 18px; color: var(--text-dim); font-size: 13.5px; }
+  .deferred-panel li { margin-bottom: 6px; }
+
+  footer.controls {
+    max-width: 860px; margin: 22px auto 0; padding: 0 20px;
+    display: flex; justify-content: flex-end;
+  }
+  button#reset {
+    font-family: var(--font-mono); font-size: 12px; color: var(--text-dim);
+    background: none; border: 1px solid var(--line); border-radius: 6px;
+    padding: 6px 10px; cursor: pointer;
+  }
+  button#reset:hover { color: var(--interrupt); border-color: var(--interrupt); }
+  button#reset:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  @media (max-width: 560px) {
+    .phase-body { padding-left: 16px; }
+    .phase-meta { display: none; }
+  }
+</style>
+
+<header class="top">
+  <div class="inner">
+    <p class="eyebrow">nuc-rebuild / PLAN.md</p>
+    <h1>Home lab clean rebuild — phase checklist</h1>
+    <div class="progress-row">
+      <div class="progress-track"><div class="progress-fill" id="overallFill"></div></div>
+      <div class="progress-label" id="overallLabel">0 / 0</div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <h2 class="intro-title">Scope</h2>
+  <p class="intro">
+    Three machines, one clean rebuild: NUC 14 Pro (Proxmox host, workstation VM + LLM LXC), Raspberry Pi 5
+    (bare-metal Home Assistant), HP Pro Mini 400 G9 (Proxmox host, Frigate LXC). Each phase below has a
+    self-contained prompt in <code>prompts/</code> — don't start the next phase until the current one's exit
+    criteria are met. Checkbox state is saved in this browser only.
+  </p>
+
+  <div id="phaseList"></div>
+
+  <div class="deferred-panel">
+    <h3>Deferred / out of scope</h3>
+    <ul>
+      <li>NAS build / Proxmox Backup Server on the HP Mini's free SATA bay — deferred in favor of LLM performance; vzdump-on-local-disk is the interim safety net.</li>
+      <li>Google Coral Dual Edge TPU M.2 accelerator — no compatible slot on any of the three machines (NUC/HP Mini are slotless SFF; Pi 5's HAT breakout is M-key, not E-key).</li>
+      <li>NPU detection experiment (OpenVINO <code style="font-family:var(--font-mono)">NPU</code> device on the NUC's Meteor Lake NPU) — revisit after the GPU baseline is proven.</li>
+    </ul>
+  </div>
+</main>
+
+<footer class="controls">
+  <button id="reset" type="button">Reset all progress</button>
+</footer>
+
+<script>
+  const PHASES = [
+    {
+      id: 0, title: "NUC host SSH access", meta: "Coding VM (.180)", badges: ["manual"],
+      tasks: [
+        "Check/generate SSH keypair on the Coding VM (~/.ssh/)",
+        "Lawrie authorizes the key via Proxmox web UI → NUC node → Shell (paste into authorized_keys)",
+        "Verify `ssh root@192.168.68.100` from the Coding VM",
+      ],
+    },
+    {
+      id: 1, title: "Audit + salvage", meta: "Coding VM · before touching anything", badges: [],
+      tasks: [
+        "Host audit: pveversion, qm list / pct list, pvesm status + storage layout, per-guest configs, /dev/dri on host",
+        "Salvage HA: trigger a full backup (includes Zigbee2MQTT device DB, Matter certs, ESPHome secrets, voice config)",
+        "Copy the HA backup .tar to host storage and to the Coding VM",
+        "Salvage Frigate: copy config.yml (camera URLs/credentials, zones/masks) to host storage and the Coding VM",
+        "Note current Frigate media usage",
+        "vzdump one-shot backup of the old HAOS VM, the Frigate container, and the Coding VM to host storage",
+      ],
+    },
+    {
+      id: 2, title: "Shrink Coding VM + teardown", meta: "Coding VM · config only", badges: [],
+      tasks: [
+        "Configure the Coding VM down to 6GB RAM / 4 vCPU (applies at next power-off/on, in Phase 3)",
+        "Confirm with Lawrie, then stop and destroy the old HAOS VM on the NUC",
+        "Confirm with Lawrie, then stop and destroy the old Frigate container on the NUC",
+      ],
+    },
+    {
+      id: 3, title: "NUC Proxmox host upgrade + optimisation", meta: "Coding VM", badges: ["interrupt"],
+      tasks: [
+        "Run pve8to9 --full, resolve blockers, switch repos, apt dist-upgrade",
+        "Reboot the NUC host (drops this session — restart it afterwards and resume)",
+        "Optimise: intel-microcode, intel-gpu-tools, full update",
+        "Verify iGPU: /dev/dri/renderD128 present, Xe driver loaded (not legacy i915), vainfo clean",
+        "Confirm CPU governor (powersave + intel_pstate)",
+      ],
+    },
+    {
+      id: 4, title: "Raspberry Pi 5: Home Assistant OS", meta: "Coding VM drives it over SSH", badges: ["manual"],
+      tasks: [
+        "Lawrie physically upgrades the Pi 5 from microSD to NVMe",
+        "Flash the official HAOS Raspberry Pi 5 image and boot it",
+        "Static DHCP reservation on .101 (reused)",
+        "Restore the Phase 1 full backup — Zigbee2MQTT, Matter, ESPHome, voice assist, Samba, automations, HACS",
+        "Tailscale manual re-auth (node identity ties to the physical install)",
+        "Add a recorder: block with exclude/purge_keep_days tuning (fixed 8GB ceiling, no borrowing headroom)",
+        "Consider dropping the VS Code/code-server add-on now the workstation VM exists",
+      ],
+    },
+    {
+      id: 5, title: "HP Pro Mini 400 G9: Proxmox bootstrap", meta: "Coding VM drives it over SSH", badges: ["manual"],
+      tasks: [
+        "Lawrie installs Proxmox VE fresh on the HP Mini (USB installer), static IP .110",
+        "Same SSH-key-authorization pattern as Phase 0, establishing root SSH from the Coding VM",
+      ],
+    },
+    {
+      id: 6, title: "HP Mini: Frigate LXC on the UHD 770", meta: "Coding VM drives it over SSH", badges: [],
+      tasks: [
+        "Debian 13 LXC (unprivileged) with /dev/dri/renderD128 passthrough + nesting for Docker, static .102 (reused)",
+        "Install Docker + Frigate (compose)",
+        "Rebuild config.yml from salvaged camera credentials: go2rtc per camera, ffmpeg hwaccel_args preset-vaapi",
+        "Detector: openvino on GPU (UHD 770); MQTT → the Pi 5's Mosquitto at .101; keep salvaged zones/masks",
+        "Verify: intel_gpu_top shows video+render load, Frigate UI inference speed, low CPU",
+      ],
+    },
+    {
+      id: 7, title: "HA ↔ Frigate integration", meta: "Coding VM", badges: [],
+      tasks: [
+        "Install HACS + Frigate integration in HA (Pi 5), pointed at the Frigate LXC (HP Mini)",
+        "Confirm cameras, events, and sensors populate",
+        "Build a camera dashboard",
+        "One worked example automation: person detected → phone notification with snapshot",
+      ],
+    },
+    {
+      id: 8, title: "NUC: workstation VM + LLM LXC", meta: "Coding VM drives it over SSH", badges: [],
+      tasks: [
+        "Workstation VM: Debian 13, 8GB / 6 vCPU / 150GB on .103",
+        "Install XFCE (minimal), xrdp, Google Chrome, Claude Desktop (Anthropic apt repo) + Claude Code CLI",
+        "Migrate ~/claude/, ~/.claude/, ~/awa, npm globals, git config/credentials, MCP configs, SSH keys, ~/rebuild/",
+        "LLM LXC: unprivileged, dev0 passthrough to the Arc iGPU, 8GB / 4 vCPU / 100GB on .104",
+        "Serve via IPEX-LLM: small vision-capable model kept warm for llmvision captioning",
+        "Serve a separate 7–14B model for general chat/coding experimentation",
+      ],
+    },
+    {
+      id: 9, title: "Verification + decommission", meta: "workstation VM (.103)", badges: ["interrupt"],
+      tasks: [
+        "End-to-end walk test: Frigate (HP Mini) detects a person → MQTT to HA (Pi 5) → llmvision → LLM LXC (NUC) description → phone notification with snapshot",
+        "Reboot-test all three machines; confirm every guest/service auto-starts",
+        "Final check: nothing unmigrated on the Coding VM",
+        "Lawrie confirms, then destroy the Coding VM (from the workstation or web UI, not from inside it)",
+        "Raise the workstation VM to 16GB and the LLM LXC to 12GB; retire the .180 DHCP reservation",
+        "Keep vzdump archives (old HAOS, old Frigate, Coding VM) until Lawrie is happy, then remove to reclaim space",
+      ],
+    },
+    {
+      id: 10, title: "Automated maintenance", meta: "workstation VM · ongoing", badges: ["recurring"],
+      tasks: [
+        "Enable unattended-upgrades on every Debian host/guest (NUC host, HP Mini host, workstation, LLM LXC, Frigate LXC)",
+        "Set up a weekly headless Claude Code cron run (LAN access needed, so not the cloud scheduler)",
+        "Auto-apply the low-risk subset: HACS integration updates, Frigate patch-version bumps, under a scoped allowlist",
+        "Report + phone-notify anything riskier: HA Core/Supervisor/OS updates, Proxmox point releases, Frigate major bumps",
+        "Never auto-apply: Zigbee coordinator firmware, ESPHome device firmware, Proxmox major upgrades, HA Core major versions",
+      ],
+    },
+  ];
+
+  const STORAGE_KEY = "nuc-rebuild-progress-v1";
+  const state = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+
+  function taskKey(phaseId, taskIdx) { return `${phaseId}:${taskIdx}`; }
+
+  function badgeHtml(kind) {
+    const label = { manual: "Manual step", interrupt: "Interrupts session", recurring: "Recurring" }[kind];
+    return `<span class="badge ${kind}">${label}</span>`;
+  }
+
+  function render() {
+    const list = document.getElementById("phaseList");
+    list.innerHTML = "";
+    let totalDone = 0, totalTasks = 0;
+
+    PHASES.forEach((phase) => {
+      const doneCount = phase.tasks.filter((_, i) => state[taskKey(phase.id, i)]).length;
+      totalDone += doneCount; totalTasks += phase.tasks.length;
+      const pct = Math.round((doneCount / phase.tasks.length) * 100);
+
+      const details = document.createElement("details");
+      details.className = "phase";
+      details.open = doneCount > 0 && doneCount < phase.tasks.length;
+
+      const badges = phase.badges.map(badgeHtml).join("");
+      details.innerHTML = `
+        <summary>
+          <svg class="chev" viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="phase-num">${String(phase.id).padStart(2, "0")}</span>
+          <div class="phase-head">
+            <div class="phase-title">${phase.title}</div>
+            <div class="phase-meta">${phase.meta}${badges}</div>
+          </div>
+          <div class="mini-progress"><div class="mini-progress-fill" style="width:${pct}%"></div></div>
+          <div class="mini-count">${doneCount}/${phase.tasks.length}</div>
+        </summary>
+        <div class="phase-body">
+          <ul class="tasks">
+            ${phase.tasks.map((t, i) => {
+              const id = `t-${phase.id}-${i}`;
+              const checked = !!state[taskKey(phase.id, i)];
+              return `<li class="${checked ? "done" : ""}" data-phase="${phase.id}" data-idx="${i}">
+                <input type="checkbox" id="${id}" ${checked ? "checked" : ""} />
+                <label class="task-text" for="${id}">${t}</label>
+              </li>`;
+            }).join("")}
+          </ul>
+        </div>`;
+      list.appendChild(details);
+    });
+
+    document.getElementById("overallLabel").textContent = `${totalDone} / ${totalTasks}`;
+    document.getElementById("overallFill").style.width = totalTasks ? `${(totalDone / totalTasks) * 100}%` : "0%";
+
+    list.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+      cb.addEventListener("change", (e) => {
+        const li = e.target.closest("li");
+        const key = taskKey(li.dataset.phase, li.dataset.idx);
+        if (e.target.checked) state[key] = true; else delete state[key];
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        li.classList.toggle("done", e.target.checked);
+        render();
+      });
+    });
+  }
+
+  document.getElementById("reset").addEventListener("click", () => {
+    if (!confirm("Clear all checked progress?")) return;
+    for (const k in state) delete state[k];
+    localStorage.removeItem(STORAGE_KEY);
+    render();
+  });
+
+  render();
+</script>

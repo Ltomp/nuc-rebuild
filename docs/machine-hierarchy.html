@@ -1,0 +1,240 @@
+<title>Home Lab — Machine Hierarchy</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --ink: #12151a;
+    --surface: #1b212b;
+    --surface-raised: #232b38;
+    --line: #2d3542;
+    --text: #e9e6df;
+    --text-dim: #97a1b0;
+    --accent: #d9853f;
+    --accent-soft: rgba(217, 133, 63, 0.16);
+    --nuc: #d9853f;
+    --pi: #7cb08a;
+    --hpm: #6f9bd1;
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
+    --font-body: -apple-system, "Segoe UI", "Helvetica Neue", Roboto, Arial, sans-serif;
+    color-scheme: dark;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root {
+      --ink: #f3f1ec; --surface: #ffffff; --surface-raised: #f7f5f0; --line: #ddd8cd;
+      --text: #23262b; --text-dim: #636975; --accent: #b8672a; --accent-soft: rgba(184, 103, 42, 0.10);
+      --nuc: #b8672a; --pi: #3f8a54; --hpm: #2f5f95;
+      color-scheme: light;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink: #12151a; --surface: #1b212b; --surface-raised: #232b38; --line: #2d3542;
+    --text: #e9e6df; --text-dim: #97a1b0; --accent: #d9853f; --accent-soft: rgba(217, 133, 63, 0.16);
+    --nuc: #d9853f; --pi: #7cb08a; --hpm: #6f9bd1; color-scheme: dark;
+  }
+  :root[data-theme="light"] {
+    --ink: #f3f1ec; --surface: #ffffff; --surface-raised: #f7f5f0; --line: #ddd8cd;
+    --text: #23262b; --text-dim: #636975; --accent: #b8672a; --accent-soft: rgba(184, 103, 42, 0.10);
+    --nuc: #b8672a; --pi: #3f8a54; --hpm: #2f5f95; color-scheme: light;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--ink); color: var(--text);
+    font-family: var(--font-body); line-height: 1.5; -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 1080px; margin: 0 auto; padding: 32px 20px 80px; }
+
+  .eyebrow {
+    font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--text-dim); margin: 0 0 6px;
+  }
+  h1 { font-size: 22px; margin: 0 0 10px; font-weight: 650; text-wrap: balance; }
+  p.intro { font-size: 14.5px; color: var(--text-dim); margin: 0 0 36px; max-width: 68ch; }
+  p.intro code { font-family: var(--font-mono); background: var(--surface-raised); padding: 1px 5px; border-radius: 4px; font-size: 0.92em; }
+
+  .rack {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px;
+    align-items: start;
+  }
+  @media (max-width: 820px) {
+    .rack { grid-template-columns: 1fr; }
+  }
+
+  .column { display: flex; flex-direction: column; align-items: stretch; }
+
+  .host-card {
+    border: 1px solid var(--line); border-radius: 10px; background: var(--surface);
+    padding: 16px 16px 14px; position: relative; border-top: 3px solid var(--host-color);
+  }
+  .host-card .role {
+    font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--host-color); font-weight: 700; margin-bottom: 6px;
+  }
+  .host-card h2 { font-size: 16px; margin: 0 0 4px; font-weight: 650; }
+  .host-card .ip {
+    font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); margin-bottom: 10px;
+  }
+  .spec-list {
+    list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 3px;
+  }
+  .spec-list li {
+    font-family: var(--font-mono); font-size: 11.5px; color: var(--text-dim);
+    display: flex; justify-content: space-between; gap: 8px;
+  }
+  .spec-list li span:last-child { color: var(--text); text-align: right; }
+
+  .connector {
+    width: 1px; height: 20px; background: var(--line); margin: 0 auto;
+    position: relative;
+  }
+  .connector::after {
+    content: ""; position: absolute; bottom: -1px; left: 50%; transform: translateX(-50%);
+    width: 6px; height: 6px; border-radius: 50%; background: var(--host-color);
+  }
+
+  .guest-card {
+    border: 1px solid var(--line); border-radius: 10px; background: var(--surface-raised);
+    padding: 14px 16px; margin-bottom: 12px;
+  }
+  .guest-card:last-child { margin-bottom: 0; }
+  .guest-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+  .guest-name { font-size: 14px; font-weight: 650; }
+  .guest-type {
+    font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase;
+    color: var(--host-color); background: color-mix(in srgb, var(--host-color) 16%, transparent);
+    padding: 1.5px 6px; border-radius: 4px; flex: none;
+  }
+  .guest-ip { font-family: var(--font-mono); font-size: 11.5px; color: var(--text-dim); margin-bottom: 8px; }
+  .guest-desc { font-size: 12.5px; color: var(--text-dim); margin: 0 0 8px; line-height: 1.5; }
+  .guest-specs {
+    display: flex; flex-wrap: wrap; gap: 5px 10px; font-family: var(--font-mono);
+    font-size: 10.5px; color: var(--text-dim); padding-top: 8px; border-top: 1px solid var(--line);
+  }
+  .guest-specs b { color: var(--text); font-weight: 600; }
+
+  .caption {
+    font-size: 12px; color: var(--text-dim); margin-top: 12px; line-height: 1.5;
+    padding-left: 10px; border-left: 2px solid var(--line);
+  }
+
+  .flow {
+    margin-top: 44px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--surface); padding: 18px 20px;
+  }
+  .flow h3 {
+    font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase;
+    color: var(--text-dim); margin: 0 0 14px; font-weight: 700;
+  }
+  .flow-row {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px;
+  }
+  .flow-chip {
+    font-family: var(--font-mono); font-size: 12px; padding: 5px 10px; border-radius: 6px;
+    border: 1px solid var(--line); white-space: nowrap;
+  }
+  .flow-chip.nuc { color: var(--nuc); border-color: color-mix(in srgb, var(--nuc) 40%, var(--line)); }
+  .flow-chip.pi { color: var(--pi); border-color: color-mix(in srgb, var(--pi) 40%, var(--line)); }
+  .flow-chip.hpm { color: var(--hpm); border-color: color-mix(in srgb, var(--hpm) 40%, var(--line)); }
+  .flow-arrow { color: var(--text-dim); font-size: 13px; }
+  .flow-label {
+    font-size: 11px; color: var(--text-dim); width: 100%; margin: -2px 0 2px;
+  }
+</style>
+
+<main>
+  <p class="eyebrow">nuc-rebuild / target end state</p>
+  <h1>Three machines, three jobs</h1>
+  <p class="intro">
+    Split by workload rather than crammed onto one box: the Zigbee coordinator is network-attached
+    (<code>tcp://192.168.68.98:6638</code>), so Home Assistant's physical location is free to change. Frigate and
+    the LLM both want GPU time, so they're deliberately on separate iGPUs (UHD&nbsp;770 vs Arc) rather than
+    competing on the NUC.
+  </p>
+
+  <div class="rack">
+    <!-- NUC -->
+    <div class="column" style="--host-color: var(--nuc)">
+      <div class="host-card">
+        <div class="role">Proxmox host</div>
+        <h2>NUC 14 Pro</h2>
+        <div class="ip">192.168.68.100</div>
+        <ul class="spec-list">
+          <li><span>CPU</span><span>Core Ultra 5 125H</span></li>
+          <li><span>RAM</span><span>32GB DDR5</span></li>
+          <li><span>Storage</span><span>2TB NVMe</span></li>
+          <li><span>GPU</span><span>Arc iGPU</span></li>
+          <li><span>Hypervisor</span><span>Proxmox VE 9.x</span></li>
+        </ul>
+      </div>
+      <div class="connector"></div>
+      <div class="guest-card">
+        <div class="guest-top"><span class="guest-name">workstation</span><span class="guest-type">VM · .103</span></div>
+        <p class="guest-desc">Debian 13 + XFCE + xrdp + Chrome + Claude Desktop + Claude Code — the daily-driver dev box, migrated off the old Coding VM.</p>
+        <div class="guest-specs"><span><b>16GB</b> RAM<sup>†</sup></span><span><b>6</b> vCPU</span><span><b>150GB</b> disk</span></div>
+      </div>
+      <div class="guest-card">
+        <div class="guest-top"><span class="guest-name">LLM</span><span class="guest-type">LXC · .104</span></div>
+        <p class="guest-desc">Arc iGPU passthrough, uncontended. IPEX-LLM serving a small vision model (kept warm, for <code style="font-family:var(--font-mono)">llmvision</code> camera captioning) plus a 7–14B model for chat/coding.</p>
+        <div class="guest-specs"><span><b>12GB</b> RAM<sup>†</sup></span><span><b>4</b> vCPU</span><span><b>100GB</b> disk</span></div>
+      </div>
+      <p class="caption"><sup>†</sup> 8GB / 8GB each until the Coding VM is decommissioned in Phase&nbsp;9, then raised.</p>
+    </div>
+
+    <!-- Pi 5 -->
+    <div class="column" style="--host-color: var(--pi)">
+      <div class="host-card">
+        <div class="role">Bare-metal</div>
+        <h2>Raspberry Pi 5</h2>
+        <div class="ip">192.168.68.101</div>
+        <ul class="spec-list">
+          <li><span>RAM</span><span>8GB (fixed)</span></li>
+          <li><span>Storage</span><span>NVMe</span></li>
+          <li><span>Hypervisor</span><span>none</span></li>
+        </ul>
+      </div>
+      <div class="connector"></div>
+      <div class="guest-card">
+        <div class="guest-top"><span class="guest-name">Home Assistant OS</span><span class="guest-type">bare-metal</span></div>
+        <p class="guest-desc">Zigbee2MQTT (network coordinator, no re-pairing needed), Mosquitto, Matter, ESPHome, voice assist (Whisper/Piper), Samba, Tailscale.</p>
+        <div class="guest-specs"><span>recorder <b>purge-tuned</b> — no spare RAM to absorb unbounded growth</span></div>
+      </div>
+      <p class="caption">Fixed 8GB ceiling, no borrowing from a bigger pool — this is the one machine in the rack where memory discipline (recorder purge, add-on count) actually matters.</p>
+    </div>
+
+    <!-- HP Mini -->
+    <div class="column" style="--host-color: var(--hpm)">
+      <div class="host-card">
+        <div class="role">Proxmox host</div>
+        <h2>HP Pro Mini 400 G9</h2>
+        <div class="ip">192.168.68.110</div>
+        <ul class="spec-list">
+          <li><span>CPU</span><span>i7-12700T (12C/20T)</span></li>
+          <li><span>RAM</span><span>32GB DDR4</span></li>
+          <li><span>Storage</span><span>NVMe + SATA bay</span></li>
+          <li><span>GPU</span><span>UHD 770 iGPU</span></li>
+          <li><span>Hypervisor</span><span>Proxmox VE (new)</span></li>
+        </ul>
+      </div>
+      <div class="connector"></div>
+      <div class="guest-card">
+        <div class="guest-top"><span class="guest-name">Frigate</span><span class="guest-type">LXC · .102</span></div>
+        <p class="guest-desc">4 cameras. VAAPI decode + OpenVINO detection on the UHD 770 — plenty capable, and off the NUC's Arc entirely.</p>
+        <div class="guest-specs"><span><b>8GB</b> RAM</span><span><b>6</b> vCPU</span><span><b>100GB</b> root + media mount</span></div>
+      </div>
+      <p class="caption">~24GB of the 32GB sits genuinely spare — no NAS/PBS role assigned this round, but there's headroom if that changes.</p>
+    </div>
+  </div>
+
+  <div class="flow">
+    <h3>Cross-machine data flow — the Phase 7/9 worked example</h3>
+    <div class="flow-row">
+      <span class="flow-chip hpm">Frigate detects person · HP Mini</span>
+      <span class="flow-arrow">→ mqtt →</span>
+      <span class="flow-chip pi">Home Assistant · Pi 5</span>
+      <span class="flow-arrow">→ llmvision →</span>
+      <span class="flow-chip nuc">LLM description · NUC</span>
+      <span class="flow-arrow">→</span>
+      <span class="flow-chip pi">Phone notification + snapshot</span>
+    </div>
+  </div>
+</main>
