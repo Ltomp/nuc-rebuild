@@ -216,10 +216,11 @@
 <main>
   <h2 class="intro-title">Scope</h2>
   <p class="intro">
-    Three machines, one clean rebuild: NUC 14 Pro (Proxmox host, workstation VM + LLM LXC), Raspberry Pi 5
-    (bare-metal Home Assistant), HP Pro Mini 400 G9 (Proxmox host, Frigate LXC). Each phase below has a
-    self-contained prompt in <code>prompts/</code> — don't start the next phase until the current one's exit
-    criteria are met. Checkbox state is saved in this browser only.
+    Three machines, one clean rebuild, all ending up bare-metal — no hypervisor anywhere: NUC 14 Pro
+    (Claude Code CLI + IPEX-LLM, native), Raspberry Pi 5 (bare-metal Home Assistant), HP Pro Mini 400 G9
+    (Frigate in Docker, native). Each phase below has a self-contained prompt in <code>prompts/</code> — don't
+    start the next phase until the current one's exit criteria are met. Checkbox state is saved in this browser
+    only.
   </p>
 
   <div id="phaseList"></div>
@@ -241,44 +242,44 @@
 <script>
   const PHASES = [
     {
-      id: 0, title: "NUC host SSH access", meta: "Coding VM", badges: ["manual"],
+      id: 0, title: "NUC host SSH access (temporary, pre-wipe)", meta: "Coding VM", badges: ["manual"],
       tasks: [
         "Check/generate SSH keypair on the Coding VM (~/.ssh/)",
         "Lawrie authorizes the key via Proxmox web UI → NUC node → Shell (paste into authorized_keys)",
-        "Verify root SSH access to the NUC host from the Coding VM",
+        "Verify root SSH access to the NUC's current Proxmox host from the Coding VM",
       ],
     },
     {
-      id: 1, title: "Audit + salvage", meta: "Coding VM · before touching anything", badges: [],
+      id: 1, title: "Audit + salvage everything that dies with Proxmox", meta: "Coding VM · before touching anything", badges: [],
       tasks: [
-        "Host audit: pveversion, qm list / pct list, pvesm status + storage layout, per-guest configs, /dev/dri on host",
+        "Host audit: pveversion, qm list / pct list, storage layout, per-guest configs, /dev/dri on host",
         "Salvage HA: trigger a full backup (includes Zigbee2MQTT device DB, Matter certs, ESPHome secrets, voice config)",
-        "Copy the HA backup .tar to host storage and to the Coding VM",
-        "Salvage Frigate: copy config.yml (camera URLs/credentials, zones/masks) to host storage and the Coding VM",
-        "Note current Frigate media usage",
-        "vzdump one-shot backup of the old HAOS VM, the Frigate container, and the Coding VM to host storage",
+        "Salvage Frigate: copy config.yml (camera URLs/credentials, zones/masks)",
+        "Salvage the Coding VM itself: ~/.claude, ~/claude, SSH keys, git credentials, MCP configs — none of it survives the wipe",
+        "Copy the Coding VM archive to an off-NUC destination (laptop or USB) and verify it lands intact",
+        "vzdump the old HAOS VM and old Frigate container as a belt-and-braces extra",
       ],
     },
     {
-      id: 2, title: "Shrink Coding VM + teardown", meta: "Coding VM · config only", badges: [],
+      id: 2, title: "NUC: wipe Proxmox, install bare-metal Debian 13", meta: "Coding VM → new NUC session", badges: ["manual", "interrupt"],
       tasks: [
-        "Configure the Coding VM down to 6GB RAM / 4 vCPU (applies at next power-off/on, in Phase 3)",
-        "Confirm with Lawrie, then stop and destroy the old HAOS VM on the NUC",
-        "Confirm with Lawrie, then stop and destroy the old Frigate container on the NUC",
+        "Boot a Debian 13 installer USB on the NUC, wipe the disk, install fresh, static IP .103",
+        "This permanently ends the current Claude Code session — the Coding VM ceases to exist",
+        "Post-install hardening: SSH key auth, updates",
+        "Pull the Phase 1 salvage archive back down from off-NUC storage and restore ~/.claude, ~/claude, ~/rebuild",
+        "A fresh Claude Code session starts here and continues all subsequent phases from this NUC directly",
       ],
     },
     {
-      id: 3, title: "NUC Proxmox host upgrade + optimisation", meta: "Coding VM", badges: ["interrupt"],
+      id: 3, title: "HP Mini: bare-metal Debian 13 + Docker", meta: "NUC session drives it over SSH", badges: ["manual"],
       tasks: [
-        "Run pve8to9 --full, resolve blockers, switch repos, apt dist-upgrade",
-        "Reboot the NUC host (drops this session — restart it afterwards and resume)",
-        "Optimise: intel-microcode, intel-gpu-tools, full update",
-        "Verify iGPU: /dev/dri/renderD128 present, Xe driver loaded (not legacy i915), vainfo clean",
-        "Confirm CPU governor (powersave + intel_pstate)",
+        "Lawrie installs Debian 13 fresh on the HP Mini (USB installer), static IP .102",
+        "Same SSH-key-authorization pattern as Phase 0, from the new NUC session",
+        "Install Docker; verify the UHD 770 iGPU (/dev/dri/renderD128, vainfo)",
       ],
     },
     {
-      id: 4, title: "Raspberry Pi 5: Home Assistant OS", meta: "Coding VM drives it over SSH", badges: ["manual"],
+      id: 4, title: "Raspberry Pi 5: Home Assistant OS", meta: "NUC session drives it over SSH", badges: ["manual"],
       tasks: [
         "Lawrie physically upgrades the Pi 5 from microSD to NVMe",
         "Flash the official HAOS Raspberry Pi 5 image and boot it",
@@ -286,65 +287,54 @@
         "Restore the Phase 1 full backup — Zigbee2MQTT, Matter, ESPHome, voice assist, Samba, automations, HACS",
         "Tailscale manual re-auth (node identity ties to the physical install)",
         "Add a recorder: block with exclude/purge_keep_days tuning (fixed 8GB ceiling, no borrowing headroom)",
-        "Consider dropping the VS Code/code-server add-on now the workstation VM exists",
+        "Consider dropping the VS Code/code-server add-on now Claude Code covers dev work",
       ],
     },
     {
-      id: 5, title: "HP Pro Mini 400 G9: Proxmox bootstrap", meta: "Coding VM drives it over SSH", badges: ["manual"],
+      id: 5, title: "HP Mini: Frigate on the UHD 770", meta: "NUC session drives it over SSH", badges: [],
       tasks: [
-        "Lawrie installs Proxmox VE fresh on the HP Mini (USB installer), assigns a static IP",
-        "Same SSH-key-authorization pattern as Phase 0, establishing root SSH from the Coding VM",
-      ],
-    },
-    {
-      id: 6, title: "HP Mini: Frigate LXC on the UHD 770", meta: "Coding VM drives it over SSH", badges: [],
-      tasks: [
-        "Debian 13 LXC (unprivileged) with /dev/dri/renderD128 passthrough + nesting for Docker, static reservation (reused from the old Frigate container)",
-        "Install Docker + Frigate (compose)",
+        "Frigate in Docker directly on the host — /dev/dri/renderD128 passed straight through, no LXC/passthrough layer",
         "Rebuild config.yml from salvaged camera credentials: go2rtc per camera, ffmpeg hwaccel_args preset-vaapi",
         "Detector: openvino on GPU (UHD 770); MQTT → the Pi 5's Mosquitto; keep salvaged zones/masks",
         "Verify: intel_gpu_top shows video+render load, Frigate UI inference speed, low CPU",
       ],
     },
     {
-      id: 7, title: "HA ↔ Frigate integration", meta: "Coding VM", badges: [],
+      id: 6, title: "HA ↔ Frigate integration", meta: "NUC session", badges: [],
       tasks: [
-        "Install HACS + Frigate integration in HA (Pi 5), pointed at the Frigate LXC (HP Mini)",
+        "Install HACS + Frigate integration in HA (Pi 5), pointed at Frigate (HP Mini)",
         "Confirm cameras, events, and sensors populate",
         "Build a camera dashboard",
         "One worked example automation: person detected → phone notification with snapshot",
       ],
     },
     {
-      id: 8, title: "NUC: workstation VM + LLM LXC", meta: "Coding VM drives it over SSH", badges: [],
+      id: 7, title: "NUC: Claude Code CLI (confirm) + IPEX-LLM", meta: "NUC session, local build-out", badges: [],
       tasks: [
-        "Workstation VM: Debian 13, 8GB / 6 vCPU / 150GB",
-        "Install XFCE (minimal), xrdp, Google Chrome, Claude Desktop (Anthropic apt repo) + Claude Code CLI",
-        "Migrate ~/claude/, ~/.claude/, ~/awa, npm globals, git config/credentials, MCP configs, SSH keys, ~/rebuild/",
-        "LLM LXC: unprivileged, dev0 passthrough to the Arc iGPU, 8GB / 4 vCPU / 100GB",
-        "Serve via IPEX-LLM: small vision-capable model kept warm for llmvision captioning",
-        "Serve a separate 7–14B model for general chat/coding experimentation",
+        "Confirm Claude Code CLI and restored data are working (done in Phase 2, verified here)",
+        "Install the Intel GPU compute runtime + IPEX-LLM (Ollama-compatible, SYCL backend) natively — no passthrough needed",
+        "Pull a small vision model, kept warm, for llmvision camera captioning",
+        "Pull a separate 7–14B model for general chat/coding experimentation",
+        "Point HA's llmvision integration at this NUC's Ollama endpoint",
+        "Wire the vision model into the Frigate/HA notification pipeline from Phase 6",
       ],
     },
     {
-      id: 9, title: "Verification + decommission", meta: "workstation VM", badges: ["interrupt"],
+      id: 8, title: "Verification", meta: "NUC session", badges: ["interrupt"],
       tasks: [
-        "End-to-end walk test: Frigate (HP Mini) detects a person → MQTT to HA (Pi 5) → llmvision → LLM LXC (NUC) description → phone notification with snapshot",
-        "Reboot-test all three machines; confirm every guest/service auto-starts",
-        "Final check: nothing unmigrated on the Coding VM",
-        "Lawrie confirms, then destroy the Coding VM (from the workstation or web UI, not from inside it)",
-        "Raise the workstation VM to 16GB and the LLM LXC to 12GB; retire the Coding VM's DHCP reservation",
-        "Keep vzdump archives (old HAOS, old Frigate, Coding VM) until Lawrie is happy, then remove to reclaim space",
+        "End-to-end walk test: Frigate (HP Mini) detects a person → MQTT to HA (Pi 5) → llmvision → LLM on the NUC → phone notification with snapshot + description",
+        "Reboot-test all three machines; confirm every service auto-starts",
+        "Final resource/report review across all three machines",
       ],
     },
     {
-      id: 10, title: "Automated maintenance", meta: "workstation VM · ongoing", badges: ["recurring"],
+      id: 9, title: "Automated maintenance", meta: "NUC session · ongoing", badges: ["recurring"],
       tasks: [
-        "Enable unattended-upgrades on every Debian host/guest (NUC host, HP Mini host, workstation, LLM LXC, Frigate LXC)",
+        "Enable unattended-upgrades on both Debian machines (NUC, HP Mini)",
         "Set up a weekly headless Claude Code cron run (LAN access needed, so not the cloud scheduler)",
-        "Auto-apply the low-risk subset: HACS integration updates, Frigate patch-version bumps, under a scoped allowlist",
-        "Report + phone-notify anything riskier: HA Core/Supervisor/OS updates, Proxmox point releases, Frigate major bumps",
-        "Never auto-apply: Zigbee coordinator firmware, ESPHome device firmware, Proxmox major upgrades, HA Core major versions",
+        "Auto-apply the low-risk subset: HACS integration updates only, under a scoped allowlist",
+        "Report + phone-notify anything riskier: HA Core/Supervisor/OS updates, Frigate version bumps of any size, the LLM stack's version",
+        "Never auto-apply: Zigbee coordinator firmware, ESPHome device firmware, HA Core major versions",
       ],
     },
   ];

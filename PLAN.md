@@ -1,6 +1,6 @@
 # Home lab rebuild: NUC (CLI + LLM) + HP Mini (Frigate) + Pi 5 (HAOS) — all bare-metal
 
-> **Execution:** each phase has a self-contained implementation prompt in [`prompts/`](prompts/00-README.md). **The `prompts/` directory is currently stale** — it was written for the previous Proxmox-based architecture and needs regenerating against this version of PLAN.md before use. Start with `prompts/00-README.md` once that's done.
+> **Execution:** each phase has a self-contained implementation prompt in [`prompts/`](prompts/00-README.md). Start with `prompts/00-README.md`.
 
 ## Context
 
@@ -99,6 +99,3 @@ Sets up a weekly cron job that keeps the fleet patched without drifting back int
 - Google Coral Dual Edge TPU M.2 accelerator — no compatible slot on any of the three machines.
 - NPU experiment (OpenVINO `NPU` device on the NUC's Meteor Lake NPU) once the GPU baseline for both LLMs is proven — no passthrough concerns now, it's just another local device.
 
-## Known follow-up
-
-- `prompts/` directory and the GitHub Pages dashboard (`docs/`, `.github/workflows/`) were built for the Proxmox-based version of this plan and are now stale. Regenerate once this architecture is confirmed stable (no more pivots expected imminently, given how many this session has already been through).

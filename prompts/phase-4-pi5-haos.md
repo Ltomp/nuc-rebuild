@@ -1,22 +1,22 @@
 # Phase 4 — Raspberry Pi 5: Home Assistant OS (bare-metal)
 
-You are Claude Code (Sonnet) on the **Coding VM** (192.168.68.180), with root SSH to the NUC's Proxmox host **192.168.68.100**. This phase moves Home Assistant off the NUC entirely, onto a **Raspberry Pi 5 running HAOS bare-metal** — no Proxmox, no VM, direct on the hardware. The Zigbee coordinator is network-attached (`tcp://192.168.68.98:6638`), so this move has zero impact on the Zigbee mesh. You'll drive the Pi 5 over SSH once Lawrie has it flashed and booted; the physical steps are his.
+You are Claude Code (Sonnet) running directly on the **NUC** (192.168.68.103, Debian 13, bare-metal — installed in Phase 2). This phase moves Home Assistant onto a **Raspberry Pi 5 running HAOS bare-metal** — no hypervisor, no VM, direct on the hardware, same as it's always been designed to be in this rebuild. The Zigbee coordinator is network-attached (`tcp://192.168.68.98:6638`), so this move has zero impact on the Zigbee mesh. You'll drive the Pi 5 over SSH once Lawrie has it flashed and booted; the physical steps are his.
 
 ## Why bare-metal, not a VM
 
-This is a genuine, first-class, extremely common Home Assistant deployment pattern — HAOS ships an official Raspberry Pi 5 image. No virtualization tax, no passthrough complexity, and it physically decouples HA/Zigbee/voice from whatever's happening to the NUC or HP Mini during their rebuild work.
+This is a genuine, first-class, extremely common Home Assistant deployment pattern — HAOS ships an official Raspberry Pi 5 image. No virtualization tax, no passthrough complexity, and it physically decouples HA/Zigbee/voice from whatever's happening on the NUC or HP Mini.
 
 ## Context — what this HA instance actually is
 
 A live audit before this rebuild found: **144 devices, 1,752 entities, 58 integrations, 28 automations**, a **51-device Zigbee mesh** (17 end devices + 34 routers + 8 groups) via the networked SLZB coordinator, plus HACS, Matter Server, ESPHome (2 devices), local voice assist (Whisper + Piper + assist_microphone), Samba, Tailscale, and a code-server (VS Code) add-on. The recorder database was **419MB and growing**, with no `recorder:` tuning in `configuration.yaml`. This is a real, heavily-loaded home automation hub — treat the restore accordingly.
 
-**The Pi 5 has a fixed 8GB RAM ceiling** — unlike a VM on a 32GB host, there's no borrowing more if it runs tight. Recorder tuning (step 6) is not optional polish here; it's load-bearing.
+**The Pi 5 has a fixed 8GB RAM ceiling** — unlike a bigger host, there's no borrowing more if it runs tight. Recorder tuning (step 6) is not optional polish here; it's load-bearing.
 
 ## Preconditions
 
-- Read `~/rebuild/reports/phase-1.md` — confirms the **Full** HA backup (not partial) is salvaged at `~/rebuild/salvage/<file>.tar`, ideally several hundred MB+ given the recorder size.
-- Verify it's still readable: `tar -tf ~/rebuild/salvage/<ha-backup>.tar > /dev/null && echo OK`.
-- Confirm Phase 2 already destroyed the old HAOS VM on the NUC (read `phase-2.md`) — HA should currently be offline.
+- Read `~/rebuild/reports/phase-1.md` — confirms the **Full** HA backup (not partial) is salvaged, ideally several hundred MB+ given the recorder size. It should have been restored onto this NUC as part of Phase 2's archive pull-back — verify: `tar -tf ~/rebuild/salvage/<ha-backup>.tar > /dev/null && echo OK`.
+- Read `~/rebuild/reports/phase-2.md` and `phase-3.md` — confirms this NUC session is set up correctly and the HP Mini exists (not required for this phase, but establishes sequencing).
+- The old HAOS VM ceased to exist when the NUC's disk was wiped in Phase 2 — HA has been offline since then.
 
 ## Steps
 
@@ -30,7 +30,7 @@ Ask Lawrie to:
 
 ### 2. DHCP reservation — needs Lawrie
 
-Once booted, find its MAC address (Lawrie can check the router's DHCP client list, or you can try `nmap -sn 192.168.68.0/24` from this VM and look for a new host). Ask Lawrie to set a DHCP reservation for that MAC to **192.168.68.101** (reused from the old HAOS VM). Wait for confirmation, then reboot the Pi if it already grabbed a different address (`ssh` in isn't possible yet at this stage — this is done via the HAOS onboarding web UI, not SSH; HAOS doesn't expose OS-level SSH by default).
+Once booted, find its MAC address (Lawrie can check the router's DHCP client list, or you can try `nmap -sn 192.168.68.0/24` from this NUC and look for a new host). Ask Lawrie to set a DHCP reservation for that MAC to **192.168.68.101** (reused from the old HAOS VM). Wait for confirmation, then reboot the Pi if it already grabbed a different address (`ssh` in isn't possible yet at this stage — this is done via the HAOS onboarding web UI, not SSH; HAOS doesn't expose OS-level SSH by default).
 
 ### 3. Verify it's reachable and onboard
 
@@ -46,7 +46,7 @@ Expected: `200` (onboarding page). This is a **fresh HAOS instance** — do not 
 
 ```bash
 cd ~/rebuild/salvage && python3 -m http.server 8000
-# give Lawrie: http://192.168.68.180:8000/<file>.tar — stop the server (Ctrl-C) once downloaded
+# give Lawrie: http://192.168.68.103:8000/<file>.tar — stop the server (Ctrl-C) once downloaded
 ```
 
 2. Given the backup's size, this restore will take a while — poll `curl -s -o /dev/null -w "%{http_code}" http://192.168.68.101:8123` until it returns to `200` with the real login page (not onboarding) rather than assuming a fixed wait time.
@@ -76,7 +76,7 @@ Restart HA, confirm no errors in the log, and monitor `du -sh /homeassistant/hom
 
 ### 7. Drop code-server (VS Code add-on) — recommended
 
-Now that a full workstation VM exists on the NUC for real dev work (Phase 8), the code-server add-on on an always-on home-automation appliance is unneeded surface area. Confirm with Lawrie, then remove it from Settings → Add-ons if agreed.
+Now that Claude Code covers dev work from the NUC, the code-server add-on on an always-on home-automation appliance is unneeded surface area. Confirm with Lawrie, then remove it from Settings → Add-ons if agreed.
 
 ### 8. Handoff report
 
@@ -97,4 +97,4 @@ The salvaged backup tar is read-only — re-flash the Pi 5 and restore again fro
 
 ## Exit criteria
 
-Home Assistant fully restored and running on the Pi 5 at `.101`, Zigbee/Matter/ESPHome/voice all confirmed working, recorder tuned for the fixed 8GB ceiling. Next phase: `phase-5-hpmini-bootstrap.md` — **different machine again: the HP Pro Mini 400 G9**, driven from here once Lawrie has Proxmox installed on it.
+Home Assistant fully restored and running on the Pi 5 at `.101`, Zigbee/Matter/ESPHome/voice all confirmed working, recorder tuned for the fixed 8GB ceiling. Next phase: `phase-5-hpmini-frigate.md`, back to the HP Mini (its OS and Docker are already set up from Phase 3), driven from here.

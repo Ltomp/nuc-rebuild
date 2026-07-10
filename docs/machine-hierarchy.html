@@ -143,19 +143,20 @@
 
 <main>
   <p class="eyebrow">nuc-rebuild / target end state</p>
-  <h1>Three machines, three jobs</h1>
+  <h1>Three machines, three jobs — all bare-metal</h1>
   <p class="intro">
     Split by workload rather than crammed onto one box: the Zigbee coordinator is network-attached
     (TCP, not USB), so Home Assistant's physical location is free to change. Frigate and
     the LLM both want GPU time, so they're deliberately on separate iGPUs (UHD&nbsp;770 vs Arc) rather than
-    competing on the NUC.
+    competing on the NUC. With each machine now hosting exactly one workload, none of them run a hypervisor —
+    no VMs, no LXCs, just Debian (or HAOS) installed directly on the hardware.
   </p>
 
   <div class="rack">
     <!-- NUC -->
     <div class="column" style="--host-color: var(--nuc)">
       <div class="host-card">
-        <div class="role">Proxmox host</div>
+        <div class="role">Bare-metal</div>
         <h2>NUC 14 Pro</h2>
         <div class="ip">Static IP · LAN</div>
         <ul class="spec-list">
@@ -163,21 +164,15 @@
           <li><span>RAM</span><span>32GB DDR5</span></li>
           <li><span>Storage</span><span>2TB NVMe</span></li>
           <li><span>GPU</span><span>Arc iGPU</span></li>
-          <li><span>Hypervisor</span><span>Proxmox VE 9.x</span></li>
         </ul>
       </div>
       <div class="connector"></div>
       <div class="guest-card">
-        <div class="guest-top"><span class="guest-name">workstation</span><span class="guest-type">VM</span></div>
-        <p class="guest-desc">Debian 13 + XFCE + xrdp + Chrome + Claude Desktop + Claude Code — the daily-driver dev box, migrated off the old Coding VM.</p>
-        <div class="guest-specs"><span><b>16GB</b> RAM<sup>†</sup></span><span><b>6</b> vCPU</span><span><b>150GB</b> disk</span></div>
+        <div class="guest-top"><span class="guest-name">Claude Code + IPEX-LLM</span><span class="guest-type">native</span></div>
+        <p class="guest-desc">Claude Code CLI for LAN-reaching automation, and the Arc iGPU — uncontended by anything else — serving a small vision model (kept warm, for <code style="font-family:var(--font-mono)">llmvision</code> camera captioning) plus a 7–14B model for chat/coding.</p>
+        <div class="guest-specs"><span>full <b>32GB</b> / all cores available — nothing else runs here</span></div>
       </div>
-      <div class="guest-card">
-        <div class="guest-top"><span class="guest-name">LLM</span><span class="guest-type">LXC</span></div>
-        <p class="guest-desc">Arc iGPU passthrough, uncontended. IPEX-LLM serving a small vision model (kept warm, for <code style="font-family:var(--font-mono)">llmvision</code> camera captioning) plus a 7–14B model for chat/coding.</p>
-        <div class="guest-specs"><span><b>12GB</b> RAM<sup>†</sup></span><span><b>4</b> vCPU</span><span><b>100GB</b> disk</span></div>
-      </div>
-      <p class="caption"><sup>†</sup> 8GB / 8GB each until the Coding VM is decommissioned in Phase&nbsp;9, then raised.</p>
+      <p class="caption">A separate laptop runs Claude Desktop and Chrome — this machine only ever needs the CLI, so there's no desktop environment on it at all.</p>
     </div>
 
     <!-- Pi 5 -->
@@ -189,12 +184,11 @@
         <ul class="spec-list">
           <li><span>RAM</span><span>8GB (fixed)</span></li>
           <li><span>Storage</span><span>NVMe</span></li>
-          <li><span>Hypervisor</span><span>none</span></li>
         </ul>
       </div>
       <div class="connector"></div>
       <div class="guest-card">
-        <div class="guest-top"><span class="guest-name">Home Assistant OS</span><span class="guest-type">bare-metal</span></div>
+        <div class="guest-top"><span class="guest-name">Home Assistant OS</span><span class="guest-type">appliance</span></div>
         <p class="guest-desc">Zigbee2MQTT (network coordinator, no re-pairing needed), Mosquitto, Matter, ESPHome, voice assist (Whisper/Piper), Samba, Tailscale.</p>
         <div class="guest-specs"><span>recorder <b>purge-tuned</b> — no spare RAM to absorb unbounded growth</span></div>
       </div>
@@ -204,7 +198,7 @@
     <!-- HP Mini -->
     <div class="column" style="--host-color: var(--hpm)">
       <div class="host-card">
-        <div class="role">Proxmox host</div>
+        <div class="role">Bare-metal</div>
         <h2>HP Pro Mini 400 G9</h2>
         <div class="ip">Static IP · LAN</div>
         <ul class="spec-list">
@@ -212,21 +206,20 @@
           <li><span>RAM</span><span>32GB DDR4</span></li>
           <li><span>Storage</span><span>NVMe + SATA bay</span></li>
           <li><span>GPU</span><span>UHD 770 iGPU</span></li>
-          <li><span>Hypervisor</span><span>Proxmox VE (new)</span></li>
         </ul>
       </div>
       <div class="connector"></div>
       <div class="guest-card">
-        <div class="guest-top"><span class="guest-name">Frigate</span><span class="guest-type">LXC</span></div>
+        <div class="guest-top"><span class="guest-name">Frigate</span><span class="guest-type">Docker</span></div>
         <p class="guest-desc">4 cameras. VAAPI decode + OpenVINO detection on the UHD 770 — plenty capable, and off the NUC's Arc entirely.</p>
-        <div class="guest-specs"><span><b>8GB</b> RAM</span><span><b>6</b> vCPU</span><span><b>100GB</b> root + media mount</span></div>
+        <div class="guest-specs"><span>full <b>32GB</b> / all cores available — nothing else runs here</span></div>
       </div>
-      <p class="caption">~24GB of the 32GB sits genuinely spare — no NAS/PBS role assigned this round, but there's headroom if that changes.</p>
+      <p class="caption">Real headroom sits genuinely spare on this box — no NAS/backup role assigned this round, but there's room if that changes.</p>
     </div>
   </div>
 
   <div class="flow">
-    <h3>Cross-machine data flow — the Phase 7/9 worked example</h3>
+    <h3>Cross-machine data flow — the Phase 6/7 worked example</h3>
     <div class="flow-row">
       <span class="flow-chip hpm">Frigate detects person · HP Mini</span>
       <span class="flow-arrow">→ mqtt →</span>
